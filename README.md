@@ -42,3 +42,16 @@ loan-prediction-logistic-regression/
 └── templates/
     ├── index.html
     └── result.html
+
+## 🚀 Live Demo
+
+This project is deployed on Render and available online:
+
+👉 **Try it here:**  
+https://loan-prediction-logistic-regression.onrender.com
+
+### 💡 Features
+- Predict loan approval instantly
+- Based on ML Logistic Regression model
+- User-friendly web interface
+
