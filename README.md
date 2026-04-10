@@ -26,32 +26,11 @@ This is an end-to-end Machine Learning project that predicts whether a loan appl
 * **NumPy**
 * **Joblib**
 * **HTML/CSS**
+  
 
-## 📁 Project Structure
-```text
-loan-prediction-logistic-regression/
-│
-├── app.py
-├── model.pkl
-├── scaler.pkl
-├── feature_names.pkl
-├── requirements.txt
-├── Procfile
-├── README.md
-│
-└── templates/
-    ├── index.html
-    └── result.html
 
 ## 🚀 Live Demo
 
-This project is deployed on Render and available online:
+This project is deployed on Render and is available online:
 
-👉 **Try it here:**  
-https://loan-prediction-logistic-regression.onrender.com
-
-### 💡 Features
-- Predict loan approval instantly
-- Based on ML Logistic Regression model
-- User-friendly web interface
-
+👉 **Try it here:** [Loan Prediction Web App](https://loan-prediction-logistic-regression.onrender.com)
