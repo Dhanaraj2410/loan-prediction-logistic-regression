@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LoanShield Pro | AI Logistic Regression Underwriting</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons & Styling -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 900: '#134e4a' },
+                        fin: { 900: '#0f172a', 800: '#1e293b' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Step Transitions */
+        .step-container { display: none; animation: fadeIn 0.4s ease-out forwards; }
+        .step-container.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Controls */
+        .form-input {
+            width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border-radius: 0.5rem; border: 1px solid #e2e8f0;
+            background-color: #ffffff; transition: all 0.2s; outline: none; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .form-input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15); }
+        .input-icon { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .form-group { position: relative; margin-top: 0.5rem; }
+
+        /* Loading Spinner */
+        .loader-ring { display: inline-block; width: 64px; height: 64px; }
+        .loader-ring:after {
+            content: " "; display: block; width: 48px; height: 48px; margin: 8px;
+            border-radius: 50%; border: 4px solid #0d9488; border-color: #0d9488 transparent #0d9488 transparent;
+            animation: loader-ring 1.2s linear infinite;
+        }
+        @keyframes loader-ring {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="bg-brand-600 text-white p-2 rounded-lg">
+                        <i class="fas fa-microchip text-xl"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-fin-900">LoanShield<span class="font-light text-slate-500">ML</span></span>
+                </div>
+                <div class="flex items-center gap-4 text-sm font-medium text-slate-600">
+                    <span class="hidden md:inline-block px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+                        <i class="fas fa-code-branch text-brand-600 mr-1"></i> Logistic Regression Model 
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-fin-900 mb-3">AI Loan Prediction</h1>
+            <p class="text-slate-500 max-w-2xl mx-auto">An AI-powered credit risk intelligence system that evaluates multi-dimensional applicant data to generate real-time loan approval decisions with probabilistic confidence scoring..</p>
+        </div>
+
+        <!-- Stepper -->
+        <div class="mb-10 max-w-3xl mx-auto">
+            <div class="flex items-center justify-between relative">
+                <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-slate-200 -z-10 rounded-full"></div>
+                <div id="progress-bar" class="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-brand-600 -z-10 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                
+                <div class="flex flex-col items-center step-indicator cursor-default" data-step="1">
+                    <div id="step-icon-1" class="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold shadow-md shadow-brand-500/30 transition-colors duration-300">1</div>
+                    <span class="text-xs font-semibold mt-2 text-brand-700">Demographics</span>
+                </div>
+                <div class="flex flex-col items-center step-indicator cursor-default" data-step="2">
+                    <div id="step-icon-2" class="w-10 h-10 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center font-bold transition-colors duration-300">2</div>
+                    <span class="text-xs font-semibold mt-2 text-slate-500" id="step-text-2">Financial ML Features</span>
+                </div>
+                <div class="flex flex-col items-center step-indicator cursor-default" data-step="3">
+                    <div id="step-icon-3" class="w-10 h-10 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center font-bold transition-colors duration-300">3</div>
+                    <span class="text-xs font-semibold mt-2 text-slate-500" id="step-text-3">AI Verdict</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Cards -->
+        <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative min-h-[400px]">
+            
+            <!-- PAGE 1: Demographic ML Features -->
+            <div id="page1" class="step-container active p-6 md:p-8">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-5 mb-6">
+                    <div class="bg-blue-50 p-2 rounded-lg text-blue-600"><i class="fas fa-users-viewfinder"></i></div>
+                    <h2 class="text-xl font-bold text-fin-900">Demographic Features</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Applicant Full Name <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="fullName" class="form-input" placeholder="For reporting purposes">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Gender <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-venus-mars input-icon"></i>
+                            <select id="gender" class="form-input appearance-none bg-white">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Marital Status <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-rings-wedding input-icon"></i>
+                            <select id="married" class="form-input appearance-none bg-white">
+                                <option value="Yes">Married</option>
+                                <option value="No">Single</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Dependents <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-children input-icon"></i>
+                            <select id="dependents" class="form-input appearance-none bg-white">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3+">3+</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Highest Education <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-graduation-cap input-icon"></i>
+                            <select id="education" class="form-input appearance-none bg-white">
+                                <option value="Graduate">Graduate</option>
+                                <option value="Not Graduate">Not Graduate</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Self Employed <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-briefcase input-icon"></i>
+                            <select id="selfEmployed" class="form-input appearance-none bg-white">
+                                <option value="No">No (Salaried)</option>
+                                <option value="Yes">Yes (Business)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                    <button id="nextToFinancial" class="bg-fin-900 hover:bg-slate-800 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                        Proceed to Financials <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PAGE 2: Financial ML Features -->
+            <div id="page2" class="step-container p-6 md:p-8">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-5 mb-6">
+                    <div class="bg-emerald-50 p-2 rounded-lg text-emerald-600"><i class="fas fa-chart-line"></i></div>
+                    <h2 class="text-xl font-bold text-fin-900">Financial & Loan Features</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Applicant Income (₹) <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-money-bill-wave input-icon"></i>
+                            <input type="number" id="applicantIncome" class="form-input" placeholder="e.g. 50000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Co-applicant Income (₹)</label>
+                        <div class="form-group">
+                            <i class="fas fa-hand-holding-dollar input-icon"></i>
+                            <input type="number" id="coApplicantIncome" class="form-input" placeholder="Optional" value="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Loan Amount Requested (₹) <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-sack-dollar input-icon"></i>
+                            <input type="number" id="loanAmount" class="form-input" placeholder="No limit constraints">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Loan Amount Term (Months) <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-calendar-days input-icon"></i>
+                            <select id="loanAmountTerm" class="form-input appearance-none bg-white">
+                                <option value="360">360 Months (30 Years)</option>
+                                <option value="300">300 Months (25 Years)</option>
+                                <option value="240">240 Months (20 Years)</option>
+                                <option value="180">180 Months (15 Years)</option>
+                                <option value="120">120 Months (10 Years)</option>
+                                <option value="84">84 Months (7 Years)</option>
+                                <option value="60">60 Months (5 Years)</option>
+                                <option value="36">36 Months (3 Years)</option>
+                                <option value="12">12 Months (1 Year)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Credit History <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-clipboard-check input-icon"></i>
+                            <select id="creditHistory" class="form-input appearance-none bg-white">
+                                <option value="1.0">1.0 (Good / Meets Guidelines)</option>
+                                <option value="0.0">0.0 (Poor / No History)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Property Area <span class="text-red-500">*</span></label>
+                        <div class="form-group">
+                            <i class="fas fa-building input-icon"></i>
+                            <select id="propertyArea" class="form-input appearance-none bg-white">
+                                <option value="Urban">Urban</option>
+                                <option value="Semiurban">Semiurban</option>
+                                <option value="Rural">Rural</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-between gap-4">
+                    <button id="backToKYC" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button id="predictLoanBtn" class="bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-lg shadow-brand-500/40 flex items-center justify-center gap-2">
+                        <i class="fas fa-brain"></i> Predict (Logistic Regression)
+                    </button>
+                </div>
+            </div>
+
+            <!-- PAGE 3: Processing / Loading -->
+            <div id="pageLoading" class="step-container p-12 text-center">
+                <div class="flex flex-col items-center justify-center h-full py-10">
+                    <div class="loader-ring mb-6"></div>
+                    <h3 class="text-2xl font-bold text-fin-900 mb-2">Executing ML Model...</h3>
+                    <p class="text-slate-500 max-w-md mx-auto">Calculating sigmoid probability based on 11 feature weights...</p>
+                    
+                    <div class="w-full max-w-md bg-slate-100 rounded-full h-2 mt-8 overflow-hidden">
+                        <div class="bg-brand-500 h-2 rounded-full" style="width: 0%" id="loading-bar-inner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 4: Results -->
+            <div id="pageResult" class="step-container p-6 md:p-8">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-brand-50 p-2 rounded-lg text-brand-600"><i class="fas fa-file-signature"></i></div>
+                        <h2 class="text-xl font-bold text-fin-900">Logistic Regression Result</h2>
+                    </div>
+                    <button onclick="resetApp()" class="text-sm font-medium text-slate-500 hover:text-brand-600"><i class="fas fa-rotate-right mr-1"></i> Start New</button>
+                </div>
+
+                <div id="resultContent" class="space-y-6">
+                    <!-- Dynamic Result Injected Here -->
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-slate-100 text-center sm:text-right">
+                    <button id="downloadPDF" class="bg-fin-900 hover:bg-slate-800 text-white w-full sm:w-auto px-8 py-3 rounded-lg font-semibold transition-all shadow-md flex items-center justify-center sm:inline-flex gap-2">
+                        <i class="fas fa-file-pdf"></i> Export Model Report
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Hidden PDF Export Template (Bank Style) -->
+    <div style="display: none;">
+        <div id="pdfExportWrapper" style="padding: 40px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; background: white;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0d9488; padding-bottom: 20px; margin-bottom: 30px;">
+                <div>
+                    <h1 style="color: #0d9488; font-size: 28px; margin: 0; font-weight: 800;">Loan Prediction Result</h1>
+                    <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">Logistic Regression Engine</p>
+                </div>
+                <div style="text-align: right; color: #64748b; font-size: 12px; line-height: 1.6;">
+                    <strong>Reference:</strong> ML-<span id="pdfRef"></span><br>
+                    <strong>Date:</strong> <span id="pdfDate"></span>
+                </div>
+            </div>
+
+            <!-- Dynamic Body injected here -->
+            <div id="pdfDynamicData"></div>
+
+            <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: justify; line-height: 1.5;">
+                <strong>DISCLAIMER:</strong> This is a predictive report generated using a simulated Logistic Regression model mimicking the standard Kaggle/Analytics Vidhya Loan Prediction Dataset parameters.
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        const formatINR = (amount) => {
+            if(isNaN(amount) || amount === undefined) return '₹0';
+            return '₹' + Math.round(amount).toLocaleString('en-IN');
+        };
+
+        const generateRefNum = () => Math.random().toString(36).substring(2, 10).toUpperCase();
+
+        const showPage = (pageId) => {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        };
+
+        const updateStepper = (step) => {
+            const bar = document.getElementById('progress-bar');
+            bar.style.width = step === 1 ? '0%' : step === 2 ? '50%' : '100%';
+            
+            [1, 2, 3].forEach(i => {
+                const icon = document.getElementById(`step-icon-${i}`);
+                const text = document.getElementById(`step-text-${i}`);
+                
+                if (i < step) {
+                    icon.className = 'w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold shadow-md transition-colors duration-300';
+                    icon.innerHTML = '<i class="fas fa-check"></i>';
+                    if(text) text.className = 'text-xs font-semibold mt-2 text-brand-700';
+                } else if (i === step) {
+                    icon.className = 'w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold shadow-md shadow-brand-500/30 transition-colors duration-300';
+                    icon.innerHTML = i;
+                    if(text) text.className = 'text-xs font-semibold mt-2 text-brand-700';
+                } else {
+                    icon.className = 'w-10 h-10 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center font-bold transition-colors duration-300';
+                    icon.innerHTML = i;
+                    if(text) text.className = 'text-xs font-semibold mt-2 text-slate-500';
+                }
+            });
+        };
+
+        const showError = (msg) => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Feature',
+                text: msg,
+                confirmButtonColor: '#0d9488',
+                customClass: { popup: 'rounded-2xl' }
+            });
+        };
+
+        document.getElementById('nextToFinancial').addEventListener('click', () => {
+            const fullName = document.getElementById('fullName').value.trim();
+            if(!fullName) return showError("Please provide the Applicant's Full Name.");
+            
+            updateStepper(2);
+            showPage('page2');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        document.getElementById('backToKYC').addEventListener('click', () => {
+            updateStepper(1);
+            showPage('page1');
+        });
+
+        // -------------------------------------------------------------
+        // LOGISTIC REGRESSION MATHEMATICAL MODEL (SIGMOID IMPLEMENTATION)
+        // -------------------------------------------------------------
+        const runLogisticRegressionModel = (features) => {
+            // These coefficients closely mimic a trained Logistic Regression model 
+            // on the standard loan prediction dataset.
+            
+            const { 
+                gender, married, dependents, education, selfEmployed, 
+                applicantIncome, coApplicantIncome, loanAmount, 
+                loanAmountTerm, creditHistory, propertyArea 
+            } = features;
+
+            // 1. Feature Engineering & Scaling
+            const totalIncome = applicantIncome + coApplicantIncome;
+            
+            // Log transformations to normalize skewed continuous data (common in this dataset)
+            const logTotalIncome = Math.log(totalIncome > 0 ? totalIncome : 1);
+            const logLoanAmount = Math.log(loanAmount > 0 ? loanAmount : 1);
+
+            // 2. Initialize Intercept (Bias)
+            let z = -3.50; 
+
+            // 3. Apply Categorical Weights (Beta coefficients)
+            z += (creditHistory === "1.0") ? 3.35 : 0.0;
+            z += (education === "Graduate") ? 0.45 : 0.0;
+            z += (married === "Yes") ? 0.55 : 0.0;
+            z += (gender === "Male") ? 0.15 : 0.0;
+            z += (selfEmployed === "Yes") ? -0.25 : 0.0;
+            
+            if(dependents === "1") z += -0.15;
+            else if(dependents === "2") z += 0.10;
+            else if(dependents === "3+") z += -0.20;
+
+            if(propertyArea === "Semiurban") z += 0.85;
+            else if(propertyArea === "Urban") z += 0.25;
+
+            // 4. Apply Continuous Weights
+            // Higher income helps slightly, extremely high loan amounts hurt slightly
+            z += (0.15 * logTotalIncome);
+            z -= (0.25 * logLoanAmount);
+            
+            // Shorter terms represent slightly lower default risk theoretically
+            z -= (0.001 * loanAmountTerm);
+
+            // 5. The Sigmoid Function: P(Y=1) = 1 / (1 + e^-z)
+            const probability = 1 / (1 + Math.exp(-z));
+            
+            // 6. Classification Threshold (Standard 0.5)
+            const approved = probability >= 0.5;
+
+            return { probability, zScore: z, approved, totalIncome };
+        };
+
+        // Render Result UI
+        const displayResult = (result, features) => {
+            const { approved, probability, zScore, totalIncome } = result;
+            const probPercent = (probability * 100).toFixed(2);
+            
+            const badgeClass = approved ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-100 text-red-800 border-red-200";
+            const badgeIcon = approved ? "fa-circle-check" : "fa-circle-xmark";
+            const statusText = approved ? "Loan Approved (Y)" : "Loan Rejected (N)";
+            
+            const html = `
+                <!-- Top Status Card -->
+                <div class="border ${badgeClass} border-2 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                    <div class="flex items-center gap-4 flex-col sm:flex-row">
+                        <i class="fas ${badgeIcon} text-4xl sm:text-5xl"></i>
+                        <div>
+                            <h3 class="font-bold text-2xl tracking-tight">Prediction: ${statusText}</h3>
+                            <p class="font-medium opacity-90">Model Confidence: ${probPercent}%</p>
+                        </div>
+                    </div>
+                    <div class="bg-white/60 px-4 py-2 rounded-lg backdrop-blur-sm text-center">
+                        <span class="block text-xs font-semibold uppercase tracking-wide opacity-80">Z-Score (Log-Odds)</span>
+                        <span class="text-2xl font-black">${zScore.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <!-- Features Summary -->
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mt-4">
+                    <h4 class="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Model Input Features</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                        <div class="flex justify-between"><span class="text-slate-500">ApplicantName</span> <span class="font-medium text-slate-800">${features.fullName}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Gender</span> <span class="font-medium text-slate-800">${features.gender}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Married</span> <span class="font-medium text-slate-800">${features.married}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Dependents</span> <span class="font-medium text-slate-800">${features.dependents}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Education</span> <span class="font-medium text-slate-800">${features.education}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Self_Employed</span> <span class="font-medium text-slate-800">${features.selfEmployed}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">ApplicantIncome</span> <span class="font-medium text-slate-800">${formatINR(features.applicantIncome)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">CoapplicantIncome</span> <span class="font-medium text-slate-800">${formatINR(features.coApplicantIncome)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">LoanAmount</span> <span class="font-medium text-slate-800">${formatINR(features.loanAmount)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Loan_Amount_Term</span> <span class="font-medium text-slate-800">${features.loanAmountTerm} months</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Credit_History</span> <span class="font-medium text-slate-800">${features.creditHistory}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Property_Area</span> <span class="font-medium text-slate-800">${features.propertyArea}</span></div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultContent').innerHTML = html;
+            showPage('pageResult');
+            updateStepper(3);
+            
+            // Store globally for PDF
+            window.latestData = { result, features };
+        };
+
+        // Predict Button Action
+        document.getElementById('predictLoanBtn').addEventListener('click', () => {
+            const applicantIncome = parseFloat(document.getElementById('applicantIncome').value);
+            const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+            
+            if(isNaN(applicantIncome)) return showError("Valid Applicant Income is required.");
+            if(isNaN(loanAmount)) return showError("Valid Loan Amount is required.");
+
+            // Collect all 11 ML features + Name
+            const features = {
+                fullName: document.getElementById('fullName').value.trim(),
+                gender: document.getElementById('gender').value,
+                married: document.getElementById('married').value,
+                dependents: document.getElementById('dependents').value,
+                education: document.getElementById('education').value,
+                selfEmployed: document.getElementById('selfEmployed').value,
+                applicantIncome: applicantIncome,
+                coApplicantIncome: parseFloat(document.getElementById('coApplicantIncome').value) || 0,
+                loanAmount: loanAmount,
+                loanAmountTerm: parseInt(document.getElementById('loanAmountTerm').value),
+                creditHistory: document.getElementById('creditHistory').value,
+                propertyArea: document.getElementById('propertyArea').value
+            };
+
+            // Loading Animation Simulation
+            showPage('pageLoading');
+            updateStepper(2);
+            
+            let barInner = document.getElementById('loading-bar-inner');
+            barInner.style.width = "0%";
+            setTimeout(() => { barInner.style.width = "50%"; }, 400);
+            setTimeout(() => { barInner.style.width = "90%"; }, 900);
+            
+            setTimeout(() => {
+                const result = runLogisticRegressionModel(features);
+                displayResult(result, features);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 1400);
+        });
+
+        // PDF Generation
+        document.getElementById('downloadPDF').addEventListener('click', () => {
+            const btn = document.getElementById('downloadPDF');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+
+            const { result, features } = window.latestData;
+            const { approved, probability, zScore } = result;
+            
+            // Set Headers
+            document.getElementById('pdfRef').innerText = generateRefNum();
+            document.getElementById('pdfDate').innerText = new Date().toLocaleString();
+            
+            const dynamicHtml = `
+                <div style="background: ${approved ? '#f0fdfa' : '#fef2f2'}; border: 1px solid ${approved ? '#ccfbf1' : '#fecaca'}; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 10px 0; color: ${approved ? '#0f766e' : '#b91c1c'}; font-size: 18px;">
+                        Model Prediction: ${approved ? 'APPROVED (Y)' : 'REJECTED (N)'}
+                    </h3>
+                    <p style="margin: 0; font-size: 14px; color: #334155;">
+                        P(Y=1) Probability: <strong>${(probability * 100).toFixed(2)}%</strong> &nbsp;|&nbsp; Z-Score (Log-Odds): <strong>${zScore.toFixed(3)}</strong>
+                    </p>
+                </div>
+
+                <h4 style="border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; color: #0f172a; margin-bottom: 15px;">Model Input Vector (X)</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 30px;">
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">ApplicantName</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.fullName}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Gender</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.gender}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Married</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.married}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Dependents</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.dependents}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Education</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.education}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Self_Employed</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.selfEmployed}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">ApplicantIncome</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.applicantIncome}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">CoapplicantIncome</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.coApplicantIncome}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">LoanAmount</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.loanAmount}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Loan_Amount_Term</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.loanAmountTerm}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Credit_History</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.creditHistory}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Property_Area</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${features.propertyArea}</td>
+                    </tr>
+                </table>
+            `;
+            
+            document.getElementById('pdfDynamicData').innerHTML = dynamicHtml;
+
+            const element = document.getElementById('pdfExportWrapper');
+            const opt = {
+                margin: 0,
+                filename: `ML_Prediction_${features.fullName.replace(/\s+/g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            element.parentElement.style.display = 'block';
+            element.parentElement.style.position = 'absolute';
+            element.parentElement.style.left = '-9999px';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.parentElement.style.display = 'none';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        });
+
+        const resetApp = () => {
+            document.querySelectorAll('input, select').forEach(el => {
+                if(el.id !== 'loanAmountTerm') el.value = el.defaultValue || '';
+            });
+            document.getElementById('coApplicantIncome').value = "0";
+            document.getElementById('dependents').value = "0";
+            updateStepper(1);
+            showPage('page1');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+    </script>
+</body>
+</html>
